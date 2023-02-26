@@ -40,9 +40,32 @@ if (!hasteFS.exists(entryPoint)) {
 
 console.log(chalk.bold(`> Building ${chalk.blue(options.entryPoint)}`));
 
+// create dependencyResolver to get the exact paths for each module
 const resolver = new Resolver.default(moduleMap, {
     extensions: ['.js'],
     hasCoreModules: false,
     rootDir: root
 });
 const dependencyResolver = new DependencyResolver(resolver, hasteFS);
+
+// We use a set to keep a track of all the modules that have been processed
+// This helps us handle circular dependencies by ensuring that we don't process modules more than once
+const processedFiles = new Set();
+const queue = [ entryPoint ];
+
+while (queue.length) {
+    const module = queue.shift();
+
+    // If we have already processed this module before
+    // we skip processing for this module
+    if (processedFiles.has(module)) {
+        continue;
+    }
+
+    processedFiles.add(module);
+    const dependencies = dependencyResolver.resolve(module);
+    queue.push(...dependencies);
+}
+
+console.log(chalk.bold(`> Found ${chalk.blue(processedFiles.size)} files`));
+console.log(Array.from(processedFiles));
