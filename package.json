@@ -1,0 +1,11 @@
+{
+  "name": "jest-bundler",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "dependencies": {
+    "chalk": "^5.2.0",
+    "jest-haste-map": "^29.4.3",
+    "yargs": "^17.7.1"
+  }
+}
