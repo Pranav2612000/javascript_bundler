@@ -1,7 +1,14 @@
 import JestHasteMap from 'jest-haste-map';
+import chalk from 'chalk';
+import yargs from 'yargs';
+
 import { cpus } from 'os';
-import { dirname, join } from 'path';
+import { dirname, join, resolve } from 'path';
 import { fileURLToPath } from 'url';
+
+// get the entrypoint passed by the user
+const options = yargs(process.argv).argv;
+const entryPoint = resolve(process.cwd(), options.entryPoint || "");
 
 // get the root of the project
 const root = join(dirname(fileURLToPath(import.meta.url)));
@@ -21,4 +28,12 @@ const hasteMap = new JestHasteMap.default(hasteMapConfig);
 await hasteMap.setupCachePath(hasteMapConfig);
 
 const { hasteFS, moduleMap } = await hasteMap.build();
-console.log(hasteFS.getAllFiles(), moduleMap);
+
+// verify that the entrypoint passed by the user is a valid file
+if (!hasteFS.exists(entryPoint)) {
+    throw new Error(
+        '`--entry-point` does not exist. Please provide a path to a valid file in this scope'
+    );
+}
+
+console.log(chalk.bold(`> Building ${chalk.blue(options.entryPoint)}`));
