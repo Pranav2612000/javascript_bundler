@@ -1,4 +1,6 @@
 import JestHasteMap from 'jest-haste-map';
+import Resolver from 'jest-resolve';
+import { DependencyResolver } from 'jest-resolve-dependencies';
 import chalk from 'chalk';
 import yargs from 'yargs';
 
@@ -37,3 +39,10 @@ if (!hasteFS.exists(entryPoint)) {
 }
 
 console.log(chalk.bold(`> Building ${chalk.blue(options.entryPoint)}`));
+
+const resolver = new Resolver.default(moduleMap, {
+    extensions: ['.js'],
+    hasCoreModules: false,
+    rootDir: root
+});
+const dependencyResolver = new DependencyResolver(resolver, hasteFS);
