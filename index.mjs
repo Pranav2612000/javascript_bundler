@@ -96,3 +96,32 @@ while (queue.length) {
 
 console.log(chalk.bold(`> Found ${chalk.blue(processedModules.size)} files`));
 console.log(Array.from(modulesMetadata.keys()));
+
+// Now we write the actual bundling/processing logic
+// We start by traversing the modulesMetadata in reverse order to process entry-point.js last
+for (const [module, metadata] of Array.from(modulesMetadata).reverse()) {
+
+    // extract the code for that component from metadata, so that we can modify it later - to
+    // change require statements with actual code for the dependency.
+    let { code } = metadata;
+
+    // We iterate through all the dependency this module has.
+    // This will be empty for root modules and hence this loop will not run for them.
+    for (const [dependencyName, dependencyPath] of metadata.dependencyMap) {
+
+        // we use a magic Regular Expression to replace the require statements in
+        // the code with actual code,  essentially resolving the dependency.
+        code = code.replace(
+            new RegExp(
+                `require\\(('|")${dependencyName.replace(/[\/.]/g, '\\$&')}\\1\\)`,
+            ),
+            modulesMetadata.get(dependencyPath).code, // get the actual code to replace the require by from our map
+        );
+    }
+
+    // Update the code for this module with resolved code. Now all modules which depend on it
+    // can use the module name to search the map and will retrive this resolved code
+    metadata.code = code;
+}
+
+console.log(modulesMetadata.get(entryPoint).code);
