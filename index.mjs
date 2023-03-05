@@ -116,36 +116,41 @@ const output = [];
 // definitions of `define` and `requireModule` functions that power our serialization logic
 output.push(fs.readFileSync('./require.js', 'utf8'));
 
-for (const [module, metadata] of Array.from(modulesMetadata).reverse()) {
+const results = await Promise.all(
+    Array.from(modulesMetadata)
+        .reverse()
+        .map(async ([module, metadata]) => {
+            // extract the id & code for that component from metadata, so that we can modify it later - to
+            // change require statements to a parsed format our serializer understands
+            let { id, code } = metadata;
 
-    // extract the id & code for that component from metadata, so that we can modify it later - to
-    // change require statements to a parsed format our serializer understands
-    let { id, code } = metadata;
+            // We iterate through all the dependency this module has.
+            // This will be empty for root modules and hence this loop will not run for them.
+            for (const [dependencyName, dependencyPath] of metadata.dependencyMap) {
+                // get the id of this module  from our map
+                const {id: dependencyId} = modulesMetadata.get(dependencyPath);
 
-    // We iterate through all the dependency this module has.
-    // This will be empty for root modules and hence this loop will not run for them.
-    for (const [dependencyName, dependencyPath] of metadata.dependencyMap) {
-        // get the id of this module  from our map
-        const {id: dependencyId} = modulesMetadata.get(dependencyPath);
+                // we use a magic Regular Expression to replace the require statements in
+                // the code with actual code,  essentially resolving the dependency.
+                code = code.replace(
+                    new RegExp(
+                        `require\\(('|")${dependencyName.replace(/[\/.]/g, '\\$&')}\\1\\)`,
+                    ),
+                    `require(${dependencyId})`
+                );
 
-        // we use a magic Regular Expression to replace the require statements in
-        // the code with actual code,  essentially resolving the dependency.
-        code = code.replace(
-            new RegExp(
-                `require\\(('|")${dependencyName.replace(/[\/.]/g, '\\$&')}\\1\\)`,
-            ),
-            `require(${dependencyId})`
-        );
+            }
 
-    }
+            // convert the code into the serialization format and push it to the output array
+            output.push(wrapModule(id, code));
 
-    // convert the code into the serialization format and push it to the output array
-    output.push(wrapModule(id, code));
+            // Update the code for this module with resolved code. Now all modules which depend on it
+            // can use the module name to search the map and will retrive this resolved code
+            metadata.code = code;
+        })
+);
 
-    // Update the code for this module with resolved code. Now all modules which depend on it
-    // can use the module name to search the map and will retrive this resolved code
-    metadata.code = code;
-}
+output.push(...results);
 
 // Finally to start the whole resolving process we start the execution from the parent
 output.push([`requireModule(0)`]);
