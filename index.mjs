@@ -56,6 +56,10 @@ const processedModules = new Set();
 // we store the code and dependencies of the modules we've processed in this map
 const modulesMetadata = new Map();
 
+// Used as a generator for the id we'll be assigning to each module - The id helps us in requiring and
+// resolving the modules later
+let id = 0;
+
 const queue = [ entryPoint ];
 while (queue.length) {
     const module = queue.shift();
@@ -82,11 +86,9 @@ while (queue.length) {
     // read the contents of the current file
     const contents = fs.readFileSync(module, 'utf-8');
 
-    // and extract the modules defined in this file
-    const moduleBody = contents.match(/module\.exports\s+=\s+(.*?);/)?.[1] || '';
-
     const metadata = {
-        code: moduleBody || contents,
+        id: id++,
+        code: contents,
         dependencyMap
     }
     modulesMetadata.set(module, metadata);
@@ -125,3 +127,6 @@ for (const [module, metadata] of Array.from(modulesMetadata).reverse()) {
 }
 
 console.log(modulesMetadata.get(entryPoint).code);
+
+if (options.output) {
+}
