@@ -137,9 +137,10 @@ for (const [module, metadata] of Array.from(modulesMetadata).reverse()) {
             `require(${dependencyId})`
         );
 
-        // convert the code into the serialization format and push it to the output array
-        output.push(wrapModule(id, code));
     }
+
+    // convert the code into the serialization format and push it to the output array
+    output.push(wrapModule(id, code));
 
     // Update the code for this module with resolved code. Now all modules which depend on it
     // can use the module name to search the map and will retrive this resolved code
