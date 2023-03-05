@@ -1,7 +1,7 @@
 import JestHasteMap from 'jest-haste-map';
+import { Worker } from 'jest-worker';
 import Resolver from 'jest-resolve';
 import { DependencyResolver } from 'jest-resolve-dependencies';
-import { transformSync } from '@babel/core';
 import chalk from 'chalk';
 import yargs from 'yargs';
 import fs from 'fs';
@@ -9,6 +9,14 @@ import fs from 'fs';
 import { cpus } from 'os';
 import { dirname, join, resolve } from 'path';
 import { fileURLToPath } from 'url';
+
+
+const worker = new Worker(
+    join(dirname(fileURLToPath(import.meta.url)), 'worker.js'),
+    {
+        enableWorkerThreads: true
+    }
+);
 
 // get the entrypoint passed by the user
 const options = yargs(process.argv).argv;
@@ -126,9 +134,7 @@ const results = await Promise.all(
             let { id, code } = metadata;
 
             // Use babel's plugins to convert the modern js syntax to somethign the browser understands
-            code = transformSync(code, {
-                plugins: ['@babel/plugin-transform-modules-commonjs']
-            }).code;
+            ({ code } = await worker.transformFile(code));
 
             // We iterate through all the dependency this module has.
             // This will be empty for root modules and hence this loop will not run for them.
