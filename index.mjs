@@ -84,7 +84,7 @@ while (queue.length) {
     );
 
     // read the contents of the current file
-    const contents = fs.readFileSync(module, 'utf-8');
+    const contents = fs.readFileSync(module, 'utf8');
 
     const metadata = {
         id: id++,
