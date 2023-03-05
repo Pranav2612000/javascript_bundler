@@ -126,7 +126,7 @@ for (const [module, metadata] of Array.from(modulesMetadata).reverse()) {
     // This will be empty for root modules and hence this loop will not run for them.
     for (const [dependencyName, dependencyPath] of metadata.dependencyMap) {
         // get the id of this module  from our map
-        const { id } = modulesMetadata.get(dependencyPath);
+        const {id: dependencyId} = modulesMetadata.get(dependencyPath);
 
         // we use a magic Regular Expression to replace the require statements in
         // the code with actual code,  essentially resolving the dependency.
@@ -134,7 +134,7 @@ for (const [module, metadata] of Array.from(modulesMetadata).reverse()) {
             new RegExp(
                 `require\\(('|")${dependencyName.replace(/[\/.]/g, '\\$&')}\\1\\)`,
             ),
-            `require(${id})`
+            `require(${dependencyId})`
         );
 
         // convert the code into the serialization format and push it to the output array
