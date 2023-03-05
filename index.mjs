@@ -99,17 +99,34 @@ while (queue.length) {
 console.log(chalk.bold(`> Found ${chalk.blue(processedModules.size)} files`));
 console.log(Array.from(modulesMetadata.keys()));
 
+console.log(chalk.bold(`> Serializing bundle`));
 // Now we write the actual bundling/processing logic
 // We start by traversing the modulesMetadata in reverse order to process entry-point.js last
+
+// Refer finalSerialization.js for how we want the modules to be serialized. This function modifies
+// the module code to convert it to the format requried for this serialization
+const wrapModule = (id, code) => {
+    return `define(${id}, function(module, exports, require) {\n${code}});`;
+}
+
+// output array for storing code of each module
+const output = [];
+
+// We first add the code from the  ./require.js file to the output array. This code contains the 
+// definitions of `define` and `requireModule` functions that power our serialization logic
+output.push(fs.readFileSync('./require.js', 'utf8'));
+
 for (const [module, metadata] of Array.from(modulesMetadata).reverse()) {
 
-    // extract the code for that component from metadata, so that we can modify it later - to
-    // change require statements with actual code for the dependency.
-    let { code } = metadata;
+    // extract the id & code for that component from metadata, so that we can modify it later - to
+    // change require statements to a parsed format our serializer understands
+    let { id, code } = metadata;
 
     // We iterate through all the dependency this module has.
     // This will be empty for root modules and hence this loop will not run for them.
     for (const [dependencyName, dependencyPath] of metadata.dependencyMap) {
+        // get the id of this module  from our map
+        const { id } = modulesMetadata.get(dependencyPath);
 
         // we use a magic Regular Expression to replace the require statements in
         // the code with actual code,  essentially resolving the dependency.
@@ -117,8 +134,11 @@ for (const [module, metadata] of Array.from(modulesMetadata).reverse()) {
             new RegExp(
                 `require\\(('|")${dependencyName.replace(/[\/.]/g, '\\$&')}\\1\\)`,
             ),
-            modulesMetadata.get(dependencyPath).code, // get the actual code to replace the require by from our map
+            `require(${id})`
         );
+
+        // convert the code into the serialization format and push it to the output array
+        output.push(wrapModule(id, code));
     }
 
     // Update the code for this module with resolved code. Now all modules which depend on it
@@ -126,7 +146,7 @@ for (const [module, metadata] of Array.from(modulesMetadata).reverse()) {
     metadata.code = code;
 }
 
-console.log(modulesMetadata.get(entryPoint).code);
+// Finally to start the whole resolving process we start the execution from the parent
+output.push([`requireModule(0)`]);
 
-if (options.output) {
-}
+console.log(output.join('\n'));
