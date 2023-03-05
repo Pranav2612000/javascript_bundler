@@ -150,3 +150,7 @@ for (const [module, metadata] of Array.from(modulesMetadata).reverse()) {
 output.push([`requireModule(0)`]);
 
 console.log(output.join('\n'));
+
+if (options.output) {
+    fs.writeFileSync(options.output, output.join('\n'), 'utf8'); 
+}
