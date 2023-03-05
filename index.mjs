@@ -1,6 +1,7 @@
 import JestHasteMap from 'jest-haste-map';
 import Resolver from 'jest-resolve';
 import { DependencyResolver } from 'jest-resolve-dependencies';
+import { transformSync } from '@babel/core';
 import chalk from 'chalk';
 import yargs from 'yargs';
 import fs from 'fs';
@@ -124,6 +125,11 @@ const results = await Promise.all(
             // change require statements to a parsed format our serializer understands
             let { id, code } = metadata;
 
+            // Use babel's plugins to convert the modern js syntax to somethign the browser understands
+            code = transformSync(code, {
+                plugins: ['@babel/plugin-transform-modules-commonjs']
+            }).code;
+
             // We iterate through all the dependency this module has.
             // This will be empty for root modules and hence this loop will not run for them.
             for (const [dependencyName, dependencyPath] of metadata.dependencyMap) {
@@ -149,7 +155,6 @@ const results = await Promise.all(
             metadata.code = code;
         })
 );
-
 output.push(...results);
 
 // Finally to start the whole resolving process we start the execution from the parent
